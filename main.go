@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"time"
+	"timeTracker/customDb"
 
 	_ "github.com/lib/pq"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -26,20 +26,15 @@ func (User) TableName() string {
 }
 
 func main() {
-	database := getConnect()
+	database := customDb.GetConnect()
 	if database != nil {
-		database.AutoMigrate(&User{})
+		user := User{Name: "Test", CreatedAt: time.Now(), Passport: 123}
+		database.Create(&user)
+		result := map[string]interface{}{}
+		database.Model(&User{}).First(&result)
+		fmt.Println(result)
+		//	database.AutoMigrate(&User{})
 	} else {
 		fmt.Println(database)
 	}
-}
-
-func getConnect() *gorm.DB {
-	db, err := gorm.Open(postgres.Open("user=postgres password=postgres dbname=postgres sslmode=disable"), &gorm.Config{})
-	if err == nil {
-		return db
-	} else {
-		fmt.Println(err)
-	}
-	return nil
 }
