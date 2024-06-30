@@ -2,39 +2,23 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"timeTracker/customDb"
+	"timeTracker/models"
 
 	_ "github.com/lib/pq"
-	"gorm.io/gorm"
 )
-
-type User struct {
-	gorm.Model
-	UUID      string `gorm:"primaryKey"`
-	Name      string
-	CreatedAt time.Time `gorm:"default:current_timestamp"`
-	Passport  int
-}
-
-type Tabler interface {
-	TableName() string
-}
-
-func (User) TableName() string {
-	return "users"
-}
 
 func main() {
 	database := customDb.GetConnect()
 	if database != nil {
-		user := User{Name: "Test", CreatedAt: time.Now(), Passport: 123}
-		database.Create(&user)
-		result := map[string]interface{}{}
-		database.Model(&User{}).First(&result)
-		fmt.Println(result)
-		//	database.AutoMigrate(&User{})
-	} else {
-		fmt.Println(database)
+		database.AutoMigrate(&models.User{})
+		var count int64
+		database.Model(&models.User{}).Count(&count)
+		if count == 0 {
+			customDb.SeedingUsers(database)
+		}
+		results := []map[string]interface{}{}
+		database.Model(&models.User{}).Limit(10).Find(&results)
+		fmt.Print(len(results))
 	}
 }
