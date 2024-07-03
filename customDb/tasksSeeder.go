@@ -2,6 +2,7 @@ package customDb
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -19,11 +20,15 @@ func SeedingTasks(db *gorm.DB, userData []map[string]interface{}) {
 		startExec := time.Now()
 		var completeExec time.Time
 		if completed == 1 {
-			completeExec = startExec.Add(time.Hour * 1 + time.Minute * 15)
+			completeExec = startExec.Add(time.Hour*1 + time.Minute*15)
 		}
-		userId, _ := uuid.Parse(fmt.Sprint(userData[i]["id"]))
-		fmt.Println(userId)
-		task := models.Task{ID: id, Title: "Test_task" + strconv.Itoa(i), StartExec: startExec, CompleteExec: completeExec, UserId: userId}
-		db.Create(&task)
+		userId, err := uuid.Parse(fmt.Sprint(userData[i]["id"]))
+		if err != nil {
+			fmt.Println(userId)
+			task := models.Task{ID: id, Title: "Test_task" + strconv.Itoa(i), StartExec: startExec, CompleteExec: completeExec, UserId: userId}
+			db.Create(&task)
+		} else {
+			log.Fatal(err)
+		}
 	}
 }
