@@ -17,3 +17,12 @@ type TaskExecutionTime struct {
 func (task *TaskExecutionTime) TableName() string {
 	return "tasks_exec_time"
 }
+
+func (task *TaskExecutionTime) Init() TaskExecutionTime {
+	return TaskExecutionTime{
+		ID: uuid.New(),
+		TaskId: uuid.New(),
+		StartExec: time.Now(),
+		Pause: time.Now(),
+	}
+}

@@ -18,3 +18,13 @@ type Task struct {
 func (task *Task) TableName() string {
 	return "tasks"
 }
+
+func (task *Task) Init() Task {
+	return Task{
+		ID: uuid.New(),
+		Title: "stub",
+		UserId: uuid.New(),
+		StartExec: time.Now(),
+		CompleteExec: time.Now(),
+	}
+}

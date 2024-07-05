@@ -2,6 +2,7 @@ package customDb
 
 import (
 	"timeTracker/models"
+	"timeTracker/utils"
 )
 
 // Conducts initial migrations and populates test data. Returns true on success.
@@ -30,5 +31,6 @@ func Init() bool {
 			}
 		}
 	}
+	utils.PrintMemoryAndGC()
 	return resp
 }
