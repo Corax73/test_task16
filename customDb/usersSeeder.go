@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Creates test entries in the users table.
+// SeedingUsers creates test entries in the users table.
 func SeedingUsers(db *gorm.DB) {
 	for i := 0; i < 10; i++ {
 		id := uuid.New()

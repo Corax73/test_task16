@@ -15,6 +15,7 @@ import (
 
 const somethingWrong = "try later"
 const noRecords = "not found"
+const limitDefault = 5
 
 func RunRouter() {
 	utils.PrintMemoryAndGC()
@@ -29,8 +30,22 @@ func RunRouter() {
 func getUsers(c *gin.Context) {
 	database := customDb.GetConnect()
 	users := []map[string]interface{}{}
-	database.Model(&models.User{}).Limit(10).Find(&users)
-	if len(users) > 0 {
+	offset, err := strconv.Atoi(c.Query("offset"))
+	if err != nil {
+		offset = 0
+	}
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil {
+		limit = limitDefault
+	}
+	var count int64
+	database.Model(&models.User{}).Count(&count)
+	if count > 0 {
+		database.Model(&models.User{}).Limit(limit).Offset(offset).Find(&users)
+		total := make(map[string]interface{})
+		total["total"] = count
+		users = append(users, total)
+		utils.PrintMemoryAndGC()
 		c.JSON(200, users)
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
@@ -41,8 +56,21 @@ func getUsers(c *gin.Context) {
 func getTasks(c *gin.Context) {
 	database := customDb.GetConnect()
 	tasks := []map[string]interface{}{}
-	database.Model(&models.Task{}).Limit(10).Find(&tasks)
-	if len(tasks) > 0 {
+	offset, err := strconv.Atoi(c.Query("offset"))
+	if err != nil {
+		offset = 0
+	}
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil {
+		limit = limitDefault
+	}
+	var count int64
+	database.Model(&models.Task{}).Count(&count)
+	if count > 0 {
+		database.Model(&models.Task{}).Limit(limit).Offset(offset).Find(&tasks)
+		total := make(map[string]interface{})
+		total["total"] = count
+		tasks = append(tasks, total)
 		utils.PrintMemoryAndGC()
 		c.JSON(200, tasks)
 	} else {

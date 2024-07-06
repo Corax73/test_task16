@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Creates test entries in the task table based on the passed slice of user maps.
+// SeedingTasks creates test entries in the task table based on the passed slice of user maps.
 func SeedingTasks(db *gorm.DB, userData []map[string]interface{}) {
 	for i := 0; i < 10; i++ {
 		id := uuid.New()

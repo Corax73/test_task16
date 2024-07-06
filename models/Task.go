@@ -19,6 +19,7 @@ func (task *Task) TableName() string {
 	return "tasks"
 }
 
+// Init returns a model instance.
 func (task *Task) Init() Task {
 	return Task{
 		ID: uuid.New(),

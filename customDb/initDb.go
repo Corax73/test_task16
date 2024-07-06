@@ -5,7 +5,7 @@ import (
 	"timeTracker/utils"
 )
 
-// Conducts initial migrations and populates test data. Returns true on success.
+// Init conducts initial migrations and populates test data. Returns true on success.
 func Init() bool {
 	var resp bool
 	database := GetConnect()

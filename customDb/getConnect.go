@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Receives data for the database from the environment file, if successful, returns the connection from the database.
+// GetConnect receives data for the database from the environment file, if successful, returns the connection from the database.
 func GetConnect() *gorm.DB {
 	dsnMap := GetConfFromEnvFile()
 	dsnStr := GetDsnString(dsnMap)

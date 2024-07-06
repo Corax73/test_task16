@@ -18,6 +18,7 @@ func (task *TaskExecutionTime) TableName() string {
 	return "tasks_exec_time"
 }
 
+// Init returns a model instance.
 func (task *TaskExecutionTime) Init() TaskExecutionTime {
 	return TaskExecutionTime{
 		ID: uuid.New(),
