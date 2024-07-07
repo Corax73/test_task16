@@ -1,6 +1,7 @@
 package customDb
 
 import (
+	"timeTracker/customLog"
 	"timeTracker/models"
 	"timeTracker/utils"
 )
@@ -29,6 +30,8 @@ func Init() bool {
 			if count > 0 {
 				resp = true
 			}
+		} else {
+			customLog.Logging(errUser, errTask, errTaskExecutionTime)
 		}
 	}
 	utils.PrintMemoryAndGC()

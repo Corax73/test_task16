@@ -1,7 +1,7 @@
 package customDb
 
 import (
-	"fmt"
+	"timeTracker/customLog"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -16,7 +16,7 @@ func GetConnect() *gorm.DB {
 		if err == nil {
 			return db
 		} else {
-			fmt.Println(err)
+			customLog.Logging(err)
 		}
 	}
 	return nil

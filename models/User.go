@@ -20,3 +20,14 @@ type User struct {
 func (user *User) TableName() string {
 	return "users"
 }
+
+// Init returns a model instance.
+func (task *User) Init() User {
+	return User{
+		ID: uuid.New(),
+		Name: "Default name",
+		CreatedAt: time.Now(),
+		PassportNumber: 123,
+		PassportSeries: 321456,
+	}
+}

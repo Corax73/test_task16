@@ -2,10 +2,10 @@ package customDb
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"strconv"
 	"time"
+	"timeTracker/customLog"
 	"timeTracker/models"
 
 	"github.com/google/uuid"
@@ -28,7 +28,7 @@ func SeedingTasks(db *gorm.DB, userData []map[string]interface{}) {
 			task := models.Task{ID: id, Title: "Test_task" + strconv.Itoa(i), StartExec: startExec, CompleteExec: completeExec, UserId: userId}
 			db.Create(&task)
 		} else {
-			log.Fatal(err)
+			customLog.Logging(err)
 		}
 	}
 }

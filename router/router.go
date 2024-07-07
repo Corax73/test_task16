@@ -1,11 +1,13 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 	"timeTracker/customDb"
+	"timeTracker/customLog"
 	"timeTracker/models"
 	"timeTracker/utils"
 
@@ -13,72 +15,79 @@ import (
 	"github.com/google/uuid"
 )
 
-const somethingWrong = "try later"
-const noRecords = "not found"
-const limitDefault = 5
+const somethingWrong string = "try later"
+const noRecords string = "not found"
+const limitDefault int = 5
 
 func RunRouter() {
 	utils.PrintMemoryAndGC()
 	router := gin.Default()
-	router.GET("/users", getUsers)
-	router.GET("/tasks", getTasks)
+	router.GET("/users", getList)
+	router.GET("/tasks", getList)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
 	router.Run(":4343")
 }
 
-func getUsers(c *gin.Context) {
+// getList returns lists of entities, if a model exists, with a limit (there is a default value) and offset.
+func getList(c *gin.Context) {
 	database := customDb.GetConnect()
-	users := []map[string]interface{}{}
+	data := []map[string]interface{}{}
 	offset, err := strconv.Atoi(c.Query("offset"))
 	if err != nil {
 		offset = 0
+	} else {
+		customLog.Logging(err)
 	}
 	limit, err := strconv.Atoi(c.Query("limit"))
 	if err != nil {
 		limit = limitDefault
-	}
-	var count int64
-	database.Model(&models.User{}).Count(&count)
-	if count > 0 {
-		database.Model(&models.User{}).Limit(limit).Offset(offset).Find(&users)
-		total := make(map[string]interface{})
-		total["total"] = count
-		users = append(users, total)
-		utils.PrintMemoryAndGC()
-		c.JSON(200, users)
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
+		customLog.Logging(err)
+	}
+	model, err := getModelByQuery(c)
+	if err == nil {
+		var count int64
+		database.Model(&model).Count(&count)
+		if count > 0 {
+			database.Model(&model).Limit(limit).Offset(offset).Find(&data)
+			total := make(map[string]interface{})
+			total["total"] = count
+			data = append(data, total)
+			utils.PrintMemoryAndGC()
+			c.JSON(200, data)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
+		}
+	} else {
+		customLog.Logging(err)
 	}
 	utils.PrintMemoryAndGC()
 }
 
-func getTasks(c *gin.Context) {
-	database := customDb.GetConnect()
-	tasks := []map[string]interface{}{}
-	offset, err := strconv.Atoi(c.Query("offset"))
-	if err != nil {
-		offset = 0
-	}
-	limit, err := strconv.Atoi(c.Query("limit"))
-	if err != nil {
-		limit = limitDefault
-	}
-	var count int64
-	database.Model(&models.Task{}).Count(&count)
-	if count > 0 {
-		database.Model(&models.Task{}).Limit(limit).Offset(offset).Find(&tasks)
-		total := make(map[string]interface{})
-		total["total"] = count
-		tasks = append(tasks, total)
-		utils.PrintMemoryAndGC()
-		c.JSON(200, tasks)
-	} else {
-		utils.PrintMemoryAndGC()
-		c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
+// getModelByQuery returns a model instance for the route from the context and an empty error, if there is no model along the route, the error will not be empty.
+func getModelByQuery(c *gin.Context) (models.Model, error) {
+	var err error
+	switch c.Request.URL.Path {
+	case "/users":
+		obj := (*models.User).Init(new(models.User))
+		resp := &obj
+		return resp, err
+	case "/tasks":
+		obj := (*models.Task).Init(new(models.Task))
+		resp := &obj
+		return resp, err
+	default:
+		obj := (*models.User).Init(new(models.User))
+		resp := &obj
+		err = errors.New("unknown route")
+		customLog.Logging(err)
+		return resp, err
 	}
 }
 
+// startTask if a Task with an ID from the context exists, creates a record about the Task Execution Time model with the start time.
+// If there is already a start entry, it returns an error.
 func startTask(c *gin.Context) {
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
@@ -94,6 +103,7 @@ func startTask(c *gin.Context) {
 				utils.PrintMemoryAndGC()
 				c.JSON(200, "started")
 			} else {
+				customLog.Logging(err)
 				utils.PrintMemoryAndGC()
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
@@ -101,9 +111,13 @@ func startTask(c *gin.Context) {
 			utils.PrintMemoryAndGC()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "already started"})
 		}
+	} else {
+		customLog.Logging(err)
 	}
 }
 
+// stopTask if a Task with an ID from the context exists, it updates the record about the Task Execution Time model with the stop time.
+// If there is already a stop record, it returns an error.
 func stopTask(c *gin.Context) {
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
@@ -121,11 +135,14 @@ func stopTask(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "already stopped"})
 		}
 	} else {
+		customLog.Logging(err)
 		utils.PrintMemoryAndGC()
 		c.JSON(http.StatusBadRequest, gin.H{"error": noRecords})
 	}
 }
 
+// checkEntityById using the ID from the passed context, searches for a record based on the passed model. If exists, returns the model *uuid.UUID and an empty error.
+// Otherwise default *uuid.UUID and non-empty error.
 func checkEntityById(c *gin.Context, model models.Model) (*uuid.UUID, error) {
 	var err error
 	defaultId := uuid.New()
@@ -142,10 +159,12 @@ func checkEntityById(c *gin.Context, model models.Model) (*uuid.UUID, error) {
 			if err == nil {
 				resp = &taskId
 			} else {
+				customLog.Logging(err)
 				utils.PrintMemoryAndGC()
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
 		} else {
+			err = errors.New(noRecords + " " + model.TableName())
 			utils.PrintMemoryAndGC()
 			c.JSON(http.StatusBadRequest, gin.H{"error": noRecords})
 		}

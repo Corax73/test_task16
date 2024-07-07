@@ -1,6 +1,10 @@
 package customDb
 
-import "github.com/joho/godotenv"
+import (
+	"timeTracker/customLog"
+
+	"github.com/joho/godotenv"
+)
 
 // GetConfFromEnvFile receives data for the database from the environment file. If successful, returns a non-empty map.
 func GetConfFromEnvFile() map[string]string {
@@ -8,6 +12,8 @@ func GetConfFromEnvFile() map[string]string {
 	envFile, err := godotenv.Read(".env")
 	if err == nil {
 		resp = envFile
+	} else {
+		customLog.Logging(err)
 	}
 	return resp
 }
