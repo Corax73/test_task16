@@ -2,6 +2,7 @@ package customDb
 
 import (
 	"timeTracker/customLog"
+	"timeTracker/utils"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -9,8 +10,8 @@ import (
 
 // GetConnect receives data for the database from the environment file, if successful, returns the connection from the database.
 func GetConnect() *gorm.DB {
-	dsnMap := GetConfFromEnvFile()
-	dsnStr := GetDsnString(dsnMap)
+	settings := utils.GetConfFromEnvFile()
+	dsnStr := GetDsnString(settings)
 	if dsnStr != "" {
 		db, err := gorm.Open(postgres.Open(dsnStr), &gorm.Config{})
 		if err == nil {

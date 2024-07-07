@@ -20,7 +20,7 @@ const noRecords string = "not found"
 const limitDefault int = 5
 
 func RunRouter() {
-	utils.PrintMemoryAndGC()
+	utils.GCRunAndPrintMemory()
 	router := gin.Default()
 	router.GET("/users", getList)
 	router.GET("/tasks", getList)
@@ -29,7 +29,7 @@ func RunRouter() {
 	router.Run(":4343")
 }
 
-// getList returns lists of entities, if a model exists, with a limit (there is a default value) and offset.
+// getList returns lists of entities with the total number, if a model exists, with a limit (there is a default value) and offset.
 func getList(c *gin.Context) {
 	database := customDb.GetConnect()
 	data := []map[string]interface{}{}
@@ -54,7 +54,7 @@ func getList(c *gin.Context) {
 			total := make(map[string]interface{})
 			total["total"] = count
 			data = append(data, total)
-			utils.PrintMemoryAndGC()
+			utils.GCRunAndPrintMemory()
 			c.JSON(200, data)
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
@@ -62,7 +62,7 @@ func getList(c *gin.Context) {
 	} else {
 		customLog.Logging(err)
 	}
-	utils.PrintMemoryAndGC()
+	utils.GCRunAndPrintMemory()
 }
 
 // getModelByQuery returns a model instance for the route from the context and an empty error, if there is no model along the route, the error will not be empty.
@@ -100,15 +100,15 @@ func startTask(c *gin.Context) {
 			taskId, err := uuid.Parse(fmt.Sprint(taskId))
 			if err == nil {
 				database.Save(&models.TaskExecutionTime{ID: uuid.New(), TaskId: taskId, StartExec: time.Now()})
-				utils.PrintMemoryAndGC()
+				utils.GCRunAndPrintMemory()
 				c.JSON(200, "started")
 			} else {
 				customLog.Logging(err)
-				utils.PrintMemoryAndGC()
+				utils.GCRunAndPrintMemory()
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
 		} else if count > 0 {
-			utils.PrintMemoryAndGC()
+			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "already started"})
 		}
 	} else {
@@ -128,15 +128,15 @@ func stopTask(c *gin.Context) {
 		database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
 		if count == 1 {
 			result := database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", time.Now())
-			utils.PrintMemoryAndGC()
+			utils.GCRunAndPrintMemory()
 			c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
 		} else if count == 0 {
-			utils.PrintMemoryAndGC()
+			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "already stopped"})
 		}
 	} else {
 		customLog.Logging(err)
-		utils.PrintMemoryAndGC()
+		utils.GCRunAndPrintMemory()
 		c.JSON(http.StatusBadRequest, gin.H{"error": noRecords})
 	}
 }
@@ -160,12 +160,12 @@ func checkEntityById(c *gin.Context, model models.Model) (*uuid.UUID, error) {
 				resp = &taskId
 			} else {
 				customLog.Logging(err)
-				utils.PrintMemoryAndGC()
+				utils.GCRunAndPrintMemory()
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
 		} else {
 			err = errors.New(noRecords + " " + model.TableName())
-			utils.PrintMemoryAndGC()
+			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": noRecords})
 		}
 	}

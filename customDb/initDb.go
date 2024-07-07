@@ -34,6 +34,6 @@ func Init() bool {
 			customLog.Logging(errUser, errTask, errTaskExecutionTime)
 		}
 	}
-	utils.PrintMemoryAndGC()
+	utils.GCRunAndPrintMemory()
 	return resp
 }
