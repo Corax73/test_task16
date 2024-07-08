@@ -11,8 +11,8 @@ type Task struct {
 	Title        string
 	UserId       uuid.UUID `json:"user_id" gorm:"type:uuid"`
 	User         User      `gorm:"foreignKey:UserId"`
-	StartExec    time.Time `gorm:"default:NULL"`
-	CompleteExec time.Time `gorm:"default:NULL"`
+	StartExec    time.Time `gorm:"type:TIMESTAMP;null;default:null"`
+	CompleteExec time.Time `gorm:"type:TIMESTAMP;null;default:null"`
 }
 
 func (task *Task) TableName() string {

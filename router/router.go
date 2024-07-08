@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 const somethingWrong string = "try later"
@@ -26,6 +27,7 @@ func RunRouter() {
 	router.GET("/tasks", getList)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
+	router.POST("/tasks/complete", completeTask)
 	router.Run(":4343")
 }
 
@@ -86,9 +88,11 @@ func getModelByQuery(c *gin.Context) (models.Model, error) {
 	}
 }
 
-// startTask if a Task with an ID from the context exists, creates a record about the Task Execution Time model with the start time.
+// startTask if a Task with an ID from the context exists, checks the start time of the Task, sets it if empty,
+// creates a record about the Task Execution Time model with the start time.
 // If there is already a start entry, it returns an error.
 func startTask(c *gin.Context) {
+	startTime := time.Now()
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
 	taskId, err := checkEntityById(c, model)
@@ -96,20 +100,32 @@ func startTask(c *gin.Context) {
 		var count int64
 		database := customDb.GetConnect()
 		database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
-		if count == 0 {
-			taskId, err := uuid.Parse(fmt.Sprint(taskId))
-			if err == nil {
-				database.Save(&models.TaskExecutionTime{ID: uuid.New(), TaskId: taskId, StartExec: time.Now()})
+		record := make(map[string]interface{})
+		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
+		var result *gorm.DB
+		if record["start_exec"] == nil {
+			result = database.Model(&models.Task{}).Where("ID = ?", taskId).Update("start_exec", startTime)
+		}
+		if result == nil || result.Error == nil {
+			if count == 0 {
+				taskId, err := uuid.Parse(fmt.Sprint(taskId))
+				if err == nil {
+					database.Save(&models.TaskExecutionTime{ID: uuid.New(), TaskId: taskId, StartExec: startTime})
+					utils.GCRunAndPrintMemory()
+					c.JSON(200, "started")
+				} else {
+					customLog.Logging(err)
+					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				}
+			} else if count > 0 {
 				utils.GCRunAndPrintMemory()
-				c.JSON(200, "started")
-			} else {
-				customLog.Logging(err)
-				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "already started"})
 			}
-		} else if count > 0 {
+		} else {
+			customLog.Logging(result.Error)
 			utils.GCRunAndPrintMemory()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "already started"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
 		}
 	} else {
 		customLog.Logging(err)
@@ -138,6 +154,41 @@ func stopTask(c *gin.Context) {
 		customLog.Logging(err)
 		utils.GCRunAndPrintMemory()
 		c.JSON(http.StatusBadRequest, gin.H{"error": noRecords})
+	}
+}
+
+// completeTask sets the completion time for the Task based on the passed ID. If it has been started, its execution also stops it.
+func completeTask(c *gin.Context) {
+	completeTime := time.Now()
+	obj := (*models.Task).Init(new(models.Task))
+	model := &obj
+	taskId, err := checkEntityById(c, model)
+	if err == nil {
+		database := customDb.GetConnect()
+		record := make(map[string]interface{})
+		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
+		var result *gorm.DB
+		if record["complete_exec"] == nil {
+			result = database.Model(&models.Task{}).Where("ID = ?", taskId).Update("complete_exec", completeTime)
+			if result.Error == nil {
+				var count int64
+				database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
+				if count == 1 {
+					result := database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", completeTime)
+					utils.GCRunAndPrintMemory()
+					c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
+				} else if count == 0 {
+					c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
+					utils.GCRunAndPrintMemory()
+				}
+			} else {
+				customLog.Logging(result.Error)
+				utils.GCRunAndPrintMemory()
+				c.JSON(http.StatusBadRequest, gin.H{"error": somethingWrong})
+			}
+		}
+	} else {
+		customLog.Logging(err)
 	}
 }
 

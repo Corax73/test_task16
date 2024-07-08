@@ -16,7 +16,6 @@ type User struct {
 	PassportSeries int
 }
 
-// Init returns a model instance.
 func (user *User) TableName() string {
 	return "users"
 }
