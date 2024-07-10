@@ -11,6 +11,7 @@ func RunRouter() {
 	utils.GCRunAndPrintMemory()
 	router := gin.Default()
 	router.GET("/users", getList)
+	router.POST("/users", createUser)
 	router.GET("/tasks", getList)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
@@ -21,7 +22,7 @@ func RunRouter() {
 // getList processes the route for obtaining lists of entities.
 func getList(c *gin.Context) {
 	rep := repository.NewTaskRepository()
-	rep.GetList(c)
+	rep.OriginalRep.GetList(c)
 }
 
 // startTask processes the task start route.
@@ -40,4 +41,10 @@ func stopTask(c *gin.Context) {
 func completeTask(c *gin.Context) {
 	rep := repository.NewTaskRepository()
 	rep.CompleteTask(c)
+}
+
+// createUser handles the user creation route.
+func createUser(c *gin.Context) {
+	rep := repository.NewUserRepository()
+	rep.Create(c)
 }

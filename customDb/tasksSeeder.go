@@ -16,7 +16,6 @@ func SeedingTasks(db *gorm.DB, userData []map[string]interface{}) {
 		id := uuid.New()
 		userId, err := uuid.Parse(fmt.Sprint(userData[i]["id"]))
 		if err == nil {
-			fmt.Println(userId)
 			task := models.Task{ID: id, Title: "Test_task" + strconv.Itoa(i), UserId: userId}
 			db.Create(&task)
 		} else {

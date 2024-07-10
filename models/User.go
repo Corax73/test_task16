@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	ID             uuid.UUID `gorm:"primary_key, unique,type:uuid, column:id,default:uuid_generate_v4()"`
-	Name           string
+	Name           string    `gorm:"unique"`
 	CreatedAt      time.Time `gorm:"default:current_timestamp"`
 	UpdatedAt      time.Time `gorm:"default:NULL"`
 	DeletedAt      time.Time `gorm:"default:NULL"`
@@ -23,9 +23,9 @@ func (user *User) TableName() string {
 // Init returns a model instance.
 func (task *User) Init() User {
 	return User{
-		ID: uuid.New(),
-		Name: "Default name",
-		CreatedAt: time.Now(),
+		ID:             uuid.New(),
+		Name:           "Default name",
+		CreatedAt:      time.Now(),
 		PassportNumber: 123,
 		PassportSeries: 321456,
 	}

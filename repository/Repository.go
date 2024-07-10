@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"timeTracker/customDb"
 	"timeTracker/customLog"
 	"timeTracker/models"
@@ -16,6 +17,42 @@ import (
 type Repository struct {
 	SomethingWrong, NoRecords, TaskCompleted, TaskStarted string
 	LimitDefault                                          int
+}
+
+// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value) and offset.
+func (rep *Repository) GetList(c *gin.Context) {
+	database := customDb.GetConnect()
+	data := []map[string]interface{}{}
+	offset, err := strconv.Atoi(c.Query("offset"))
+	if err != nil {
+		offset = 0
+	} else {
+		customLog.Logging(err)
+	}
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil {
+		limit = rep.LimitDefault
+	} else {
+		customLog.Logging(err)
+	}
+	model, err := rep.GetModelByQuery(c)
+	if err == nil {
+		var count int64
+		database.Model(&model).Count(&count)
+		if count > 0 {
+			database.Model(&model).Limit(limit).Offset(offset).Find(&data)
+			total := make(map[string]interface{})
+			total["total"] = count
+			data = append(data, total)
+			utils.GCRunAndPrintMemory()
+			c.JSON(200, data)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.SomethingWrong})
+		}
+	} else {
+		customLog.Logging(err)
+	}
+	utils.GCRunAndPrintMemory()
 }
 
 // GetModelByQuery returns a model instance for the route from the context and an empty error, if there is no model along the route, the error will not be empty.

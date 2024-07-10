@@ -33,42 +33,6 @@ func NewTaskRepository() *TaskRepository {
 	return &rep
 }
 
-// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value) and offset.
-func (rep *TaskRepository) GetList(c *gin.Context) {
-	database := customDb.GetConnect()
-	data := []map[string]interface{}{}
-	offset, err := strconv.Atoi(c.Query("offset"))
-	if err != nil {
-		offset = 0
-	} else {
-		customLog.Logging(err)
-	}
-	limit, err := strconv.Atoi(c.Query("limit"))
-	if err != nil {
-		limit = rep.OriginalRep.LimitDefault
-	} else {
-		customLog.Logging(err)
-	}
-	model, err := rep.OriginalRep.GetModelByQuery(c)
-	if err == nil {
-		var count int64
-		database.Model(&model).Count(&count)
-		if count > 0 {
-			database.Model(&model).Limit(limit).Offset(offset).Find(&data)
-			total := make(map[string]interface{})
-			total["total"] = count
-			data = append(data, total)
-			utils.GCRunAndPrintMemory()
-			c.JSON(200, data)
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.SomethingWrong})
-		}
-	} else {
-		customLog.Logging(err)
-	}
-	utils.GCRunAndPrintMemory()
-}
-
 // StartTask if a Task with an ID from the context exists, checks the start time of the Task, sets it if empty,
 // creates a record about the Task Execution Time model with the start time.
 // If there is already a start entry, it returns an error.
