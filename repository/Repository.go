@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 	"timeTracker/customDb"
 	"timeTracker/customLog"
 	"timeTracker/models"
@@ -19,28 +21,68 @@ type Repository struct {
 	LimitDefault                                          int
 }
 
-// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value) and offset.
+// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset and sort by passed field.
 func (rep *Repository) GetList(c *gin.Context) {
 	database := customDb.GetConnect()
 	data := []map[string]interface{}{}
-	offset, err := strconv.Atoi(c.Query("offset"))
-	if err != nil {
-		offset = 0
-	} else {
-		customLog.Logging(err)
+	var offset int
+	var limit int
+	requestOffset := c.Query("offset")
+	if requestOffset != "" {
+		val, err := strconv.Atoi(requestOffset)
+		if err != nil {
+			offset = 0
+			customLog.Logging(err)
+		} else {
+			offset = val
+		}
 	}
-	limit, err := strconv.Atoi(c.Query("limit"))
-	if err != nil {
-		limit = rep.LimitDefault
+	requestLimit := c.Query("limit")
+	if requestLimit != "" {
+		val, err := strconv.Atoi(requestLimit)
+		if err != nil {
+			limit = rep.LimitDefault
+			customLog.Logging(err)
+		} else {
+			limit = val
+		}
 	} else {
-		customLog.Logging(err)
+		limit = rep.LimitDefault
 	}
 	model, err := rep.GetModelByQuery(c)
 	if err == nil {
+		var fieldList []string
+		field := "id"
+		order := "desc"
+		var sorted bool
+		result, _ := database.Debug().Migrator().ColumnTypes(&model)
+		for _, v := range result {
+			fieldList = append(fieldList, v.Name())
+		}
+		sort := c.Query("sort")
+		if sort != "" {
+			splits := strings.Split(sort, ".")
+			requestField, requestOrder := splits[0], splits[1]
+			if requestOrder != "desc" && requestOrder != "asc" {
+				order = "desc"
+			} else {
+				order = requestOrder
+			}
+			if slices.Contains(fieldList, field) {
+				sorted = true
+				field = requestField
+			}
+		}
 		var count int64
 		database.Model(&model).Count(&count)
 		if count > 0 {
-			database.Model(&model).Limit(limit).Offset(offset).Find(&data)
+			var str strings.Builder
+			if sorted && field != "" {
+				str.WriteString(field)
+				str.WriteString(" ")
+				str.WriteString(order)
+			}
+			database.Model(&model).Limit(limit).Offset(offset).Order(str.String()).Find(&data)
 			total := make(map[string]interface{})
 			total["total"] = count
 			data = append(data, total)
