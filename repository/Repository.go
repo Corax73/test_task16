@@ -21,7 +21,7 @@ type Repository struct {
 	LimitDefault                                          int
 }
 
-// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset and sort by passed field.
+// GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset, sort and filter by passed field.
 func (rep *Repository) GetList(c *gin.Context) {
 	database := customDb.GetConnect()
 	data := []map[string]interface{}{}
@@ -52,9 +52,12 @@ func (rep *Repository) GetList(c *gin.Context) {
 	model, err := rep.GetModelByQuery(c)
 	if err == nil {
 		var fieldList []string
-		field := "id"
+		sortBy := "id"
 		order := "desc"
+		var filterBy string
+		var filterVal string
 		var sorted bool
+		var filtered bool
 		result, _ := database.Debug().Migrator().ColumnTypes(&model)
 		for _, v := range result {
 			fieldList = append(fieldList, v.Name())
@@ -68,21 +71,44 @@ func (rep *Repository) GetList(c *gin.Context) {
 			} else {
 				order = requestOrder
 			}
-			if slices.Contains(fieldList, field) {
+			if slices.Contains(fieldList, requestField) {
 				sorted = true
-				field = requestField
+				sortBy = requestField
+			}
+		}
+		filter := c.Query("filter")
+		if filter != "" {
+			splits := strings.Split(filter, ".")
+			requestField, requestValue := splits[0], splits[1]
+			if slices.Contains(fieldList, requestField) && requestValue != "" {
+				filtered = true
+				filterBy = requestField
+				filterVal = requestValue
 			}
 		}
 		var count int64
 		database.Model(&model).Count(&count)
 		if count > 0 {
 			var str strings.Builder
-			if sorted && field != "" {
-				str.WriteString(field)
+			if sorted && sortBy != "" {
+				str.WriteString(sortBy)
 				str.WriteString(" ")
 				str.WriteString(order)
 			}
-			database.Model(&model).Limit(limit).Offset(offset).Order(str.String()).Find(&data)
+			if filtered {
+				var filterStr strings.Builder
+				filterStr.WriteString(filterBy)
+				filterStr.WriteString(" LIKE ?")
+				fieldStr := filterStr.String()
+				filterStr.Reset()
+				filterStr.WriteString("%")
+				filterStr.WriteString(filterVal)
+				filterStr.WriteString("%")
+				valStr := filterStr.String()
+				database.Model(&model).Limit(limit).Offset(offset).Where(fieldStr, valStr).Order(str.String()).Find(&data)
+			} else {
+				database.Model(&model).Limit(limit).Offset(offset).Order(str.String()).Find(&data)
+			}
 			total := make(map[string]interface{})
 			total["total"] = count
 			data = append(data, total)
