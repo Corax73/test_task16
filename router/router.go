@@ -12,6 +12,7 @@ func RunRouter() {
 	router := gin.Default()
 	router.GET("/users", getList)
 	router.POST("/users", createUser)
+	router.POST("/users/time", getExecTime)
 	router.GET("/tasks", getList)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
@@ -47,4 +48,9 @@ func completeTask(c *gin.Context) {
 func createUser(c *gin.Context) {
 	rep := repository.NewUserRepository()
 	rep.Create(c)
+}
+
+func getExecTime(c *gin.Context) {
+	rep := repository.NewUserRepository()
+	rep.GetTaskExecutionTime(c)
 }

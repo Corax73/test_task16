@@ -23,7 +23,6 @@ type Repository struct {
 
 // GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset, sort and filter by passed field.
 func (rep *Repository) GetList(c *gin.Context) {
-	database := customDb.GetConnect()
 	data := []map[string]interface{}{}
 	var offset int
 	var limit int
@@ -58,6 +57,7 @@ func (rep *Repository) GetList(c *gin.Context) {
 		var filterVal string
 		var sorted bool
 		var filtered bool
+		database := customDb.GetConnect()
 		result, _ := database.Debug().Migrator().ColumnTypes(&model)
 		for _, v := range result {
 			fieldList = append(fieldList, v.Name())
@@ -158,9 +158,9 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 		var count int64
 		database.Model(&model).Where("id = ?", paramId).Count(&count)
 		if count > 0 {
-			taskId, err := uuid.Parse(fmt.Sprint(paramId))
+			id, err := uuid.Parse(fmt.Sprint(paramId))
 			if err == nil {
-				resp = &taskId
+				resp = &id
 			} else {
 				customLog.Logging(err)
 				utils.GCRunAndPrintMemory()
