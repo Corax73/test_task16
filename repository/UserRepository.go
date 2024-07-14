@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -73,60 +72,20 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 	userId, err := rep.OriginalRep.CheckEntityById(c, model)
 	if err == nil {
 		var fieldList []string
-		var offset int
-		var limit int
-		var sorted bool
-		sortBy := "id"
-		order := "desc"
 		database := customDb.GetConnect()
-		requestOffset := c.Query("offset")
-		if requestOffset != "" {
-			val, err := strconv.Atoi(requestOffset)
-			if err != nil {
-				offset = 0
-				customLog.Logging(err)
-			} else {
-				offset = val
-			}
-		}
-		requestLimit := c.Query("limit")
-		if requestLimit != "" {
-			val, err := strconv.Atoi(requestLimit)
-			if err != nil {
-				limit = rep.OriginalRep.LimitDefault
-				customLog.Logging(err)
-			} else {
-				limit = val
-			}
-		} else {
-			limit = rep.OriginalRep.LimitDefault
-		}
 		result, _ := database.Debug().Migrator().ColumnTypes(&model)
 		for _, v := range result {
 			fieldList = append(fieldList, v.Name())
 		}
-		sort := c.Query("sort")
-		if sort != "" {
-			splits := strings.Split(sort, ".")
-			requestField, requestOrder := splits[0], splits[1]
-			if requestOrder != "desc" && requestOrder != "asc" {
-				order = "desc"
-			} else {
-				order = requestOrder
-			}
-			if slices.Contains(fieldList, requestField) {
-				sorted = true
-				sortBy = requestField
-			}
-		}
+		requestParams := rep.OriginalRep.GetFilterAndSortFromGetRequest(c, fieldList)
 		var str strings.Builder
-		if sorted && sortBy != "" {
-			str.WriteString(sortBy)
+		if requestParams.Sorted && requestParams.SortBy != "" {
+			str.WriteString(requestParams.SortBy)
 			str.WriteString(" ")
-			str.WriteString(order)
+			str.WriteString(requestParams.Order)
 		}
 		data := []map[string]interface{}{}
-		database.Model(&models.Task{}).Select("id").Limit(limit).Offset(offset).Where("user_id = ?", userId).Order(str.String()).Find(&data)
+		database.Model(&models.Task{}).Select("id").Limit(requestParams.Limit).Offset(requestParams.Offset).Where("user_id = ?", userId).Order(str.String()).Find(&data)
 		var taskIds []string
 		for _, task := range data {
 			id := fmt.Sprintf("%v", task["id"])
@@ -136,8 +95,8 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 		}
 		if len(taskIds) > 0 {
 			data := []map[string]interface{}{}
-			database.Model(&models.TaskExecutionTime{}).Select("task_id", "start_exec", "pause").Limit(limit).
-				Offset(offset).Where("task_id IN ? AND pause IS NOT NULL", taskIds).Order(str.String()).Find(&data)
+			database.Model(&models.TaskExecutionTime{}).Select("task_id", "start_exec", "pause").Limit(requestParams.Limit).
+				Offset(requestParams.Offset).Where("task_id IN ? AND pause IS NOT NULL", taskIds).Order(str.String()).Find(&data)
 			if len(data) > 0 {
 				resp := map[string]int{}
 				for _, task := range data {

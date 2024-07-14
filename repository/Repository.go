@@ -21,93 +21,46 @@ type Repository struct {
 	LimitDefault                                          int
 }
 
+type GetRequestParams struct {
+	Offset, Limit                      int
+	Order, SortBy, FilterBy, FilterVal string
+	Sorted, Filtered                   bool
+}
+
 // GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset, sort and filter by passed field.
 func (rep *Repository) GetList(c *gin.Context) {
 	data := []map[string]interface{}{}
-	var offset int
-	var limit int
-	requestOffset := c.Query("offset")
-	if requestOffset != "" {
-		val, err := strconv.Atoi(requestOffset)
-		if err != nil {
-			offset = 0
-			customLog.Logging(err)
-		} else {
-			offset = val
-		}
-	}
-	requestLimit := c.Query("limit")
-	if requestLimit != "" {
-		val, err := strconv.Atoi(requestLimit)
-		if err != nil {
-			limit = rep.LimitDefault
-			customLog.Logging(err)
-		} else {
-			limit = val
-		}
-	} else {
-		limit = rep.LimitDefault
-	}
 	model, err := rep.GetModelByQuery(c)
 	if err == nil {
 		var fieldList []string
-		sortBy := "id"
-		order := "desc"
-		var filterBy string
-		var filterVal string
-		var sorted bool
-		var filtered bool
 		database := customDb.GetConnect()
 		result, _ := database.Debug().Migrator().ColumnTypes(&model)
 		for _, v := range result {
 			fieldList = append(fieldList, v.Name())
 		}
-		sort := c.Query("sort")
-		if sort != "" {
-			splits := strings.Split(sort, ".")
-			requestField, requestOrder := splits[0], splits[1]
-			if requestOrder != "desc" && requestOrder != "asc" {
-				order = "desc"
-			} else {
-				order = requestOrder
-			}
-			if slices.Contains(fieldList, requestField) {
-				sorted = true
-				sortBy = requestField
-			}
-		}
-		filter := c.Query("filter")
-		if filter != "" {
-			splits := strings.Split(filter, ".")
-			requestField, requestValue := splits[0], splits[1]
-			if slices.Contains(fieldList, requestField) && requestValue != "" {
-				filtered = true
-				filterBy = requestField
-				filterVal = requestValue
-			}
-		}
+		requestParams := rep.GetFilterAndSortFromGetRequest(c, fieldList)
 		var count int64
 		database.Model(&model).Count(&count)
 		if count > 0 {
 			var str strings.Builder
-			if sorted && sortBy != "" {
-				str.WriteString(sortBy)
+			if requestParams.Sorted && requestParams.SortBy != "" {
+				str.WriteString(requestParams.SortBy)
 				str.WriteString(" ")
-				str.WriteString(order)
+				str.WriteString(requestParams.Order)
 			}
-			if filtered {
+			if requestParams.Filtered {
 				var filterStr strings.Builder
-				filterStr.WriteString(filterBy)
+				filterStr.WriteString(requestParams.FilterBy)
 				filterStr.WriteString(" LIKE ?")
 				fieldStr := filterStr.String()
 				filterStr.Reset()
 				filterStr.WriteString("%")
-				filterStr.WriteString(filterVal)
+				filterStr.WriteString(requestParams.FilterVal)
 				filterStr.WriteString("%")
 				valStr := filterStr.String()
-				database.Model(&model).Limit(limit).Offset(offset).Where(fieldStr, valStr).Order(str.String()).Find(&data)
+				database.Model(&model).Limit(requestParams.Limit).Offset(requestParams.Offset).Where(fieldStr, valStr).Order(str.String()).Find(&data)
 			} else {
-				database.Model(&model).Limit(limit).Offset(offset).Order(str.String()).Find(&data)
+				database.Model(&model).Limit(requestParams.Limit).Offset(requestParams.Offset).Order(str.String()).Find(&data)
 			}
 			total := make(map[string]interface{})
 			total["total"] = count
@@ -173,4 +126,81 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 		}
 	}
 	return resp, err
+}
+
+// GetFilterAndSortFromGetRequest gets the limit, offset, filtering and sorting parameters from the request,
+// checks the matches of the names of the sorting and filtering fields with the passed slice of table names of the model fields,
+// returns a structure with values.
+func (rep *Repository) GetFilterAndSortFromGetRequest(c *gin.Context, fieldList []string) GetRequestParams {
+	var offset int
+	var limit int
+	sortBy := "id"
+	order := "desc"
+	var sorted bool
+	var filtered bool
+	var filterBy string
+	var filterVal string
+	var resp GetRequestParams
+
+	requestOffset := c.Query("offset")
+	if requestOffset != "" {
+		val, err := strconv.Atoi(requestOffset)
+		if err != nil {
+			offset = 0
+			customLog.Logging(err)
+		} else {
+			offset = val
+		}
+	}
+
+	requestLimit := c.Query("limit")
+	if requestLimit != "" {
+		val, err := strconv.Atoi(requestLimit)
+		if err != nil {
+			limit = rep.LimitDefault
+			customLog.Logging(err)
+		} else {
+			limit = val
+		}
+	} else {
+		limit = rep.LimitDefault
+	}
+
+	sort := c.Query("sort")
+	if sort != "" {
+		splits := strings.Split(sort, ".")
+		requestField, requestOrder := splits[0], splits[1]
+		if requestOrder != "desc" && requestOrder != "asc" {
+			order = "desc"
+		} else {
+			order = requestOrder
+		}
+		if slices.Contains(fieldList, requestField) {
+			sorted = true
+			sortBy = requestField
+		}
+	}
+
+	filter := c.Query("filter")
+	if filter != "" {
+		splits := strings.Split(filter, ".")
+		requestField, requestValue := splits[0], splits[1]
+		if slices.Contains(fieldList, requestField) && requestValue != "" {
+			filtered = true
+			filterBy = requestField
+			filterVal = requestValue
+		}
+	}
+
+	resp = GetRequestParams{
+		Offset:    offset,
+		Limit:     limit,
+		Order:     order,
+		SortBy:    sortBy,
+		FilterBy:  filterBy,
+		FilterVal: filterVal,
+		Sorted:    sorted,
+		Filtered:  filtered,
+	}
+	return resp
 }
