@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -98,7 +99,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 			database.Model(&models.TaskExecutionTime{}).Select("task_id", "start_exec", "pause").Limit(requestParams.Limit).
 				Offset(requestParams.Offset).Where("task_id IN ? AND pause IS NOT NULL", taskIds).Order(str.String()).Find(&data)
 			if len(data) > 0 {
-				resp := map[string]int{}
+				resp := map[string]time.Duration{}
 				for _, task := range data {
 					task_id := fmt.Sprintf("%v", task["task_id"])
 					if task_id != "" {
@@ -112,7 +113,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 							parseTimePause, err := time.Parse(layout, pause)
 							if err == nil {
 								dur := parseTimePause.Sub(parseTimeStart)
-								resp[task_id] += int(dur)
+								resp[task_id] += /*int(*/ dur /*)*/
 							} else {
 								utils.GCRunAndPrintMemory()
 								customLog.Logging(err)
@@ -124,8 +125,43 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 					}
 				}
 				if len(resp) > 0 {
+					sortedResp := [][]interface{}{}
+					keys := make([]string, 0, len(resp))
+					for key := range resp {
+						keys = append(keys, key)
+					}
+
+					sort.SliceStable(keys, func(i, j int) bool {
+						return resp[keys[i]] > resp[keys[j]]
+					})
+
+					for _, taskId := range keys {
+						duration := int(resp[taskId].Seconds())
+						var hours int
+						var minutes int
+						var hoursStr string
+						var minutesStr string
+						hours = duration / 3600
+						seconds := duration % 3600
+						if seconds > 60 {
+							minutes = seconds % 60
+						}
+						hoursStr = strconv.Itoa(hours)
+						str.WriteString(hoursStr)
+						str.WriteString(" hours")
+						if minutes != 0 {
+							minutesStr = strconv.Itoa(minutes)
+							str.WriteString(", ")
+							str.WriteString(minutesStr)
+							str.WriteString(" minutes")
+						}
+						strDuration := str.String()
+						str.Reset()
+						obj := []interface{}{taskId, strDuration}
+						sortedResp = append(sortedResp, obj)
+					}
 					utils.GCRunAndPrintMemory()
-					c.JSON(200, resp)
+					c.JSON(200, sortedResp)
 				}
 			} else {
 				utils.GCRunAndPrintMemory()
