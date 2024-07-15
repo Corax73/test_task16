@@ -27,6 +27,18 @@ type GetRequestParams struct {
 	Sorted, Filtered                   bool
 }
 
+// NewRepository returns a pointer to the initiated repository instance.
+func NewRepository() *Repository {
+	rep := Repository{
+		SomethingWrong: "try later",
+		NoRecords:      "not found",
+		TaskCompleted:  "already completed",
+		TaskStarted:    "already started",
+		LimitDefault:   5,
+	}
+	return &rep
+}
+
 // GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset, sort and filter by passed field.
 func (rep *Repository) GetList(c *gin.Context) {
 	data := []map[string]interface{}{}
@@ -76,25 +88,53 @@ func (rep *Repository) GetList(c *gin.Context) {
 	utils.GCRunAndPrintMemory()
 }
 
+// Delete determines the model for the route, deletes the entity using the passed ID.
+func (rep *Repository) Delete(c *gin.Context) {
+	model, err := rep.GetModelByQuery(c)
+	if err == nil {
+		id := c.Param("id")
+		if id != "" {
+			database := customDb.GetConnect()
+			res := database.Where("id = ?", id).Delete(&model)
+			if res.RowsAffected == 1 {
+				utils.GCRunAndPrintMemory()
+				c.JSON(200, "entity deleted")
+			} else {
+				customLog.Logging(res.Error)
+				utils.GCRunAndPrintMemory()
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
+			}
+		} else {
+			utils.GCRunAndPrintMemory()
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
+		}
+	}
+}
+
 // GetModelByQuery returns a model instance for the route from the context and an empty error, if there is no model along the route, the error will not be empty.
 func (rep *Repository) GetModelByQuery(c *gin.Context) (models.Model, error) {
 	var err error
-	switch c.Request.URL.Path {
-	case "/users":
-		obj := (*models.User).Init(new(models.User))
-		resp := &obj
-		return resp, err
-	case "/tasks":
-		obj := (*models.Task).Init(new(models.Task))
-		resp := &obj
-		return resp, err
-	default:
-		obj := (*models.User).Init(new(models.User))
-		resp := &obj
-		err = errors.New("unknown route")
-		customLog.Logging(err)
-		return resp, err
+	var resp models.Model
+	pathSlice := strings.Split(c.Request.URL.Path, "/")
+	if len(pathSlice) > 1 {
+		switch pathSlice[1] {
+		case "users":
+			obj := (*models.User).Init(new(models.User))
+			resp := &obj
+			return resp, err
+		case "tasks":
+			obj := (*models.Task).Init(new(models.Task))
+			resp := &obj
+			return resp, err
+		default:
+			obj := (*models.User).Init(new(models.User))
+			resp := &obj
+			err = errors.New("unknown route")
+			customLog.Logging(err)
+			return resp, err
+		}
 	}
+	return resp, err
 }
 
 // CheckEntityById using the ID from the passed context, searches for a record based on the passed model. If exists, returns the model *uuid.UUID and an empty error.

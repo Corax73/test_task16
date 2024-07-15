@@ -13,6 +13,7 @@ func RunRouter() {
 	router.GET("/users", getList)
 	router.POST("/users", createUser)
 	router.POST("/users/time", getExecTime)
+	router.DELETE("/users/:id", delete)
 	router.GET("/tasks", getList)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
@@ -50,7 +51,14 @@ func createUser(c *gin.Context) {
 	rep.Create(c)
 }
 
+// getExecTime returns a slice of data with task IDs and their execution time, in descending order of time.
 func getExecTime(c *gin.Context) {
 	rep := repository.NewUserRepository()
 	rep.GetTaskExecutionTime(c)
+}
+
+// delete deletes an entity using the passed ID.
+func delete(c *gin.Context) {
+	rep := repository.NewRepository()
+	rep.Delete(c)
 }
