@@ -17,8 +17,8 @@ import (
 )
 
 type Repository struct {
-	SomethingWrong, NoRecords, TaskCompleted, TaskStarted string
-	LimitDefault                                          int
+	SomethingWrong, NoRecords, TaskCompleted, TaskStarted, IncorrectParams string
+	LimitDefault                                                           int
 }
 
 type GetRequestParams struct {
@@ -30,11 +30,12 @@ type GetRequestParams struct {
 // NewRepository returns a pointer to the initiated repository instance.
 func NewRepository() *Repository {
 	rep := Repository{
-		SomethingWrong: "try later",
-		NoRecords:      "not found",
-		TaskCompleted:  "already completed",
-		TaskStarted:    "already started",
-		LimitDefault:   5,
+		SomethingWrong:  "try later",
+		NoRecords:       "not found",
+		TaskCompleted:   "already completed",
+		TaskStarted:     "already started",
+		LimitDefault:    5,
+		IncorrectParams: "incorrect parameters",
 	}
 	return &rep
 }
@@ -102,11 +103,58 @@ func (rep *Repository) Delete(c *gin.Context) {
 			} else {
 				customLog.Logging(res.Error)
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.SomethingWrong})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
+		}
+	}
+}
+
+// Update determines the entity based on the request data, receives fields to update, if the fields match the fields of the model, updates the entity.
+func (rep *Repository) Update(c *gin.Context) {
+	model, err := rep.GetModelByQuery(c)
+	if err == nil {
+		id := c.DefaultPostForm("id", "")
+		if id != "" {
+			var fieldList []string
+			database := customDb.GetConnect()
+			result, _ := database.Debug().Migrator().ColumnTypes(&model)
+			for _, v := range result {
+				fieldList = append(fieldList, v.Name())
+			}
+			updatedData := make(map[string]interface{}, len(fieldList))
+			for _, v := range fieldList {
+				value := c.DefaultPostForm(v, "")
+				if value != "" {
+					updatedData[v] = value
+				}
+			}
+			if len(updatedData) > 0 {
+				tx := database.Begin()
+				res := tx.Model(&model).Where("id = ?", id).Updates(updatedData)
+				if res.RowsAffected == 1 {
+					res := tx.Commit()
+					if res.Error == nil {
+						utils.GCRunAndPrintMemory()
+						c.JSON(200, "entity updated")
+					} else {
+						tx.Rollback()
+						customLog.Logging(res.Error)
+						utils.GCRunAndPrintMemory()
+						c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
+					}
+				} else {
+					tx.Rollback()
+					customLog.Logging(res.Error)
+					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
+				}
+			}
+		} else {
+			utils.GCRunAndPrintMemory()
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
 		}
 	}
 }

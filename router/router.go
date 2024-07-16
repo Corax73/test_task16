@@ -11,10 +11,12 @@ func RunRouter() {
 	utils.GCRunAndPrintMemory()
 	router := gin.Default()
 	router.GET("/users", getList)
-	router.POST("/users", createUser)
-	router.POST("/users/time", getExecTime)
+	router.POST("/users", create)
+	router.PUT("users", update)
 	router.DELETE("/users/:id", delete)
+	router.POST("/users/time", getExecTime)
 	router.GET("/tasks", getList)
+	router.PUT("tasks", update)
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
 	router.POST("/tasks/complete", completeTask)
@@ -46,7 +48,7 @@ func completeTask(c *gin.Context) {
 }
 
 // createUser handles the user creation route.
-func createUser(c *gin.Context) {
+func create(c *gin.Context) {
 	rep := repository.NewUserRepository()
 	rep.Create(c)
 }
@@ -61,4 +63,10 @@ func getExecTime(c *gin.Context) {
 func delete(c *gin.Context) {
 	rep := repository.NewRepository()
 	rep.Delete(c)
+}
+
+// update processes the entity data update route.
+func update(c *gin.Context) {
+	rep := repository.NewRepository()
+	rep.Update(c)
 }
