@@ -17,7 +17,7 @@ import (
 )
 
 type Repository struct {
-	SomethingWrong, NoRecords, TaskCompleted, TaskStarted, IncorrectParams string
+	SomethingWrong, NoRecords, TaskCompleted, TaskStarted, TaskStopped, IncorrectParams string
 	LimitDefault                                                           int
 }
 
@@ -34,6 +34,7 @@ func NewRepository() *Repository {
 		NoRecords:       "not found",
 		TaskCompleted:   "already completed",
 		TaskStarted:     "already started",
+		TaskStopped:     "already stopped",
 		LimitDefault:    5,
 		IncorrectParams: "incorrect parameters",
 	}

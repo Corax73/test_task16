@@ -46,11 +46,21 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 		if name != "" && passportNumber != 0 && passportSeries != 0 {
 			database := customDb.GetConnect()
 			user := models.User{ID: newId, Name: name, PassportNumber: passportNumber, PassportSeries: passportSeries}
-			result := database.Create(&user)
+			tx := database.Begin()
+			result := tx.Create(&user)
 			if result.Error == nil {
-				utils.GCRunAndPrintMemory()
-				c.JSON(200, "created")
+				res := tx.Commit()
+				if res.Error == nil {
+					utils.GCRunAndPrintMemory()
+					c.JSON(200, "created")
+				} else {
+					tx.Rollback()
+					customLog.Logging(res.Error)
+					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+				}
 			} else {
+				tx.Rollback()
 				customLog.Logging(result.Error)
 				utils.GCRunAndPrintMemory()
 				c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
@@ -72,21 +82,9 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 	model := &obj
 	userId, err := rep.OriginalRep.CheckEntityById(c, model)
 	if err == nil {
-		var fieldList []string
 		database := customDb.GetConnect()
-		result, _ := database.Debug().Migrator().ColumnTypes(&model)
-		for _, v := range result {
-			fieldList = append(fieldList, v.Name())
-		}
-		requestParams := rep.OriginalRep.GetFilterAndSortFromGetRequest(c, fieldList)
-		var str strings.Builder
-		if requestParams.Sorted && requestParams.SortBy != "" {
-			str.WriteString(requestParams.SortBy)
-			str.WriteString(" ")
-			str.WriteString(requestParams.Order)
-		}
 		data := []map[string]interface{}{}
-		database.Model(&models.Task{}).Select("id").Limit(requestParams.Limit).Offset(requestParams.Offset).Where("user_id = ?", userId).Order(str.String()).Find(&data)
+		database.Model(&models.Task{}).Select("id").Where("user_id = ?", userId).Find(&data)
 		var taskIds []string
 		for _, task := range data {
 			id := fmt.Sprintf("%v", task["id"])
@@ -96,8 +94,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 		}
 		if len(taskIds) > 0 {
 			data := []map[string]interface{}{}
-			database.Model(&models.TaskExecutionTime{}).Select("task_id", "start_exec", "pause").Limit(requestParams.Limit).
-				Offset(requestParams.Offset).Where("task_id IN ? AND pause IS NOT NULL", taskIds).Order(str.String()).Find(&data)
+			database.Model(&models.TaskExecutionTime{}).Select("task_id", "start_exec", "pause").Where("task_id IN ? AND pause IS NOT NULL", taskIds).Find(&data)
 			if len(data) > 0 {
 				resp := map[string]time.Duration{}
 				for _, task := range data {
@@ -147,6 +144,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 							minutes = seconds % 60
 						}
 						hoursStr = strconv.Itoa(hours)
+						var str strings.Builder
 						str.WriteString(hoursStr)
 						str.WriteString(" hours")
 						if minutes != 0 {

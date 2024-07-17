@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 	"timeTracker/customDb"
 	"timeTracker/customLog"
@@ -27,6 +26,7 @@ func NewTaskRepository() *TaskRepository {
 			NoRecords:      "not found",
 			TaskCompleted:  "already completed",
 			TaskStarted:    "already started",
+			TaskStopped:    "already stopped",
 			LimitDefault:   5,
 		},
 	}
@@ -56,9 +56,25 @@ func (rep *TaskRepository) StartTask(c *gin.Context) {
 				if count == 0 {
 					taskId, err := uuid.Parse(fmt.Sprint(taskId))
 					if err == nil {
-						database.Save(&models.TaskExecutionTime{ID: uuid.New(), TaskId: taskId, StartExec: startTime})
-						utils.GCRunAndPrintMemory()
-						c.JSON(200, "started")
+						tx := database.Begin()
+						res := tx.Save(&models.TaskExecutionTime{ID: uuid.New(), TaskId: taskId, StartExec: startTime})
+						if res.Error == nil {
+							res := tx.Commit()
+							if res.Error == nil {
+								utils.GCRunAndPrintMemory()
+								c.JSON(200, "started")
+							} else {
+								tx.Rollback()
+								customLog.Logging(res.Error)
+								utils.GCRunAndPrintMemory()
+								c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+							}
+						} else {
+							tx.Rollback()
+							customLog.Logging(res.Error)
+							utils.GCRunAndPrintMemory()
+							c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+						}
 					} else {
 						customLog.Logging(err)
 						utils.GCRunAndPrintMemory()
@@ -96,12 +112,28 @@ func (rep *TaskRepository) StopTask(c *gin.Context) {
 			var count int64
 			database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
 			if count == 1 {
-				result := database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", time.Now())
-				utils.GCRunAndPrintMemory()
-				c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
+				tx := database.Begin()
+				res := tx.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", time.Now())
+				if res.Error == nil {
+					res := tx.Commit()
+					if res.Error == nil {
+						utils.GCRunAndPrintMemory()
+						c.JSON(200, "task stopped")
+					} else {
+						tx.Rollback()
+						customLog.Logging(res.Error)
+						utils.GCRunAndPrintMemory()
+						c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+					}
+				} else {
+					tx.Rollback()
+					customLog.Logging(res.Error)
+					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+				}
 			} else if count == 0 {
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskStarted})
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskStopped})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
@@ -124,24 +156,47 @@ func (rep *TaskRepository) CompleteTask(c *gin.Context) {
 		database := customDb.GetConnect()
 		record := make(map[string]interface{})
 		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
-		var result *gorm.DB
 		if record["complete_exec"] == nil {
-			result = database.Model(&models.Task{}).Where("ID = ?", taskId).Update("complete_exec", completeTime)
-			if result.Error == nil {
-				var count int64
-				database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
-				if count == 1 {
-					result := database.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", completeTime)
+			tx := database.Begin()
+			res := tx.Model(&models.Task{}).Where("ID = ?", taskId).Update("complete_exec", completeTime)
+			if res.Error == nil {
+				if res.Error == nil {
+					var count int64
+					tx.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Count(&count)
+					if count == 1 {
+						res := tx.Model(&models.TaskExecutionTime{}).Where("task_id = ? AND pause IS NULL", taskId).Update("pause", completeTime)
+						if res.Error == nil {
+							res := tx.Commit()
+							if res.Error == nil {
+								utils.GCRunAndPrintMemory()
+								c.JSON(200, "task completed")
+							} else {
+								tx.Rollback()
+								customLog.Logging(res.Error)
+								utils.GCRunAndPrintMemory()
+								c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+							}
+						} else {
+							tx.Rollback()
+							customLog.Logging(res.Error)
+							utils.GCRunAndPrintMemory()
+							c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+						}
+					} else if count == 0 {
+						c.JSON(200, "task completed")
+						utils.GCRunAndPrintMemory()
+					}
+				} else {
+					tx.Rollback()
+					customLog.Logging(res.Error)
 					utils.GCRunAndPrintMemory()
-					c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
-				} else if count == 0 {
-					c.JSON(200, "updated "+strconv.FormatInt(result.RowsAffected, 10))
-					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
 				}
 			} else {
-				customLog.Logging(result.Error)
+				tx.Rollback()
+				customLog.Logging(res.Error)
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.SomethingWrong})
+				c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
