@@ -15,13 +15,13 @@ import (
 )
 
 type TaskRepository struct {
-	OriginalRep Repository
+	Repository
 }
 
 // NewTaskRepository returns a pointer to the initiated repository instance.
 func NewTaskRepository() *TaskRepository {
 	rep := TaskRepository{
-		OriginalRep: Repository{
+		Repository{
 			SomethingWrong: "try later",
 			NoRecords:      "not found",
 			TaskCompleted:  "already completed",
@@ -40,7 +40,7 @@ func (rep *TaskRepository) StartTask(c *gin.Context) {
 	startTime := time.Now()
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
-	taskId, err := rep.OriginalRep.CheckEntityById(c, model)
+	taskId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		database := customDb.GetConnect()
 		record := make(map[string]interface{})
@@ -82,16 +82,16 @@ func (rep *TaskRepository) StartTask(c *gin.Context) {
 					}
 				} else if count > 0 {
 					utils.GCRunAndPrintMemory()
-					c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskStarted})
+					c.JSON(http.StatusBadRequest, gin.H{"error": rep.TaskStarted})
 				}
 			} else {
 				customLog.Logging(result.Error)
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.SomethingWrong})
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.SomethingWrong})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
-			c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskCompleted})
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.TaskCompleted})
 		}
 	} else {
 		customLog.Logging(err)
@@ -103,7 +103,7 @@ func (rep *TaskRepository) StartTask(c *gin.Context) {
 func (rep *TaskRepository) StopTask(c *gin.Context) {
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
-	taskId, err := rep.OriginalRep.CheckEntityById(c, model)
+	taskId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		record := make(map[string]interface{})
 		database := customDb.GetConnect()
@@ -133,16 +133,16 @@ func (rep *TaskRepository) StopTask(c *gin.Context) {
 				}
 			} else if count == 0 {
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskStopped})
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.TaskStopped})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
-			c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskCompleted})
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.TaskCompleted})
 		}
 	} else {
 		customLog.Logging(err)
 		utils.GCRunAndPrintMemory()
-		c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.NoRecords})
+		c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
 	}
 }
 
@@ -151,7 +151,7 @@ func (rep *TaskRepository) CompleteTask(c *gin.Context) {
 	completeTime := time.Now()
 	obj := (*models.Task).Init(new(models.Task))
 	model := &obj
-	taskId, err := rep.OriginalRep.CheckEntityById(c, model)
+	taskId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		database := customDb.GetConnect()
 		record := make(map[string]interface{})
@@ -200,7 +200,7 @@ func (rep *TaskRepository) CompleteTask(c *gin.Context) {
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
-			c.JSON(http.StatusBadRequest, gin.H{"error": rep.OriginalRep.TaskCompleted})
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.TaskCompleted})
 		}
 	} else {
 		customLog.Logging(err)

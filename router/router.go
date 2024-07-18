@@ -26,7 +26,7 @@ func RunRouter() {
 // getList processes the route for obtaining lists of entities.
 func getList(c *gin.Context) {
 	rep := repository.NewTaskRepository()
-	rep.OriginalRep.GetList(c)
+	rep.GetList(c)
 }
 
 // startTask processes the task start route.
