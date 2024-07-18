@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"timeTracker/customDb"
 	"timeTracker/customLog"
 	"timeTracker/models"
@@ -42,7 +43,8 @@ func NewRepository() *Repository {
 }
 
 // GetList returns lists of entities with the total number, if a model exists, with a limit (there is a default value), offset, sort and filter by passed field.
-func (rep *Repository) GetList(c *gin.Context) {
+func (rep *Repository) GetList(c *gin.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	data := []map[string]interface{}{}
 	model, err := rep.GetModelByQuery(c)
 	if err == nil {

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"sync"
 	"timeTracker/repository"
 	"timeTracker/utils"
 
@@ -25,8 +26,11 @@ func RunRouter() {
 
 // getList processes the route for obtaining lists of entities.
 func getList(c *gin.Context) {
+	var wg sync.WaitGroup
 	rep := repository.NewTaskRepository()
-	rep.GetList(c)
+	wg.Add(1)
+	go rep.GetList(c, &wg)
+	wg.Wait()
 }
 
 // startTask processes the task start route.
