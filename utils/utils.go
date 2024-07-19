@@ -32,5 +32,7 @@ func GCRunAndPrintMemory() {
 		runtime.ReadMemStats(&stat)
 		fmt.Println(stat.Alloc / 1024)
 	}
-	runtime.GC()
+	if val, ok := settings["GC_MANUAL_RUN"]; ok && val == "true" {
+		runtime.GC()
+	}
 }
