@@ -19,7 +19,7 @@ import (
 
 type Repository struct {
 	SomethingWrong, NoRecords, TaskCompleted, TaskStarted, TaskStopped, IncorrectParams string
-	LimitDefault                                                           int
+	LimitDefault                                                                        int
 }
 
 type GetRequestParams struct {
@@ -84,12 +84,43 @@ func (rep *Repository) GetList(c *gin.Context, wg *sync.WaitGroup) {
 			utils.GCRunAndPrintMemory()
 			c.JSON(200, data)
 		} else {
+			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": rep.SomethingWrong})
 		}
 	} else {
+		utils.GCRunAndPrintMemory()
 		customLog.Logging(err)
 	}
 	utils.GCRunAndPrintMemory()
+}
+
+// GetOne determines the model based on the request,
+// searches for a record based on the ID from the request, and if successful, returns it or an error.
+func (rep *Repository) GetOne(c *gin.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	model, err := rep.GetModelByQuery(c)
+	if err == nil {
+		id := c.Param("id")
+		if id != "" {
+			database := customDb.GetConnect()
+			data := []map[string]interface{}{}
+			fmt.Println(id)
+			res := database.Model(&model).Where("id = ?", id).First(&data)
+			if res.RowsAffected > 0 {
+				utils.GCRunAndPrintMemory()
+				c.JSON(200, data)
+			} else {
+				utils.GCRunAndPrintMemory()
+				c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
+			}
+		} else {
+			utils.GCRunAndPrintMemory()
+			c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
+		}
+	} else {
+		utils.GCRunAndPrintMemory()
+		customLog.Logging(err)
+	}
 }
 
 // Delete determines the model for the route, deletes the entity using the passed ID.
@@ -122,6 +153,9 @@ func (rep *Repository) Delete(c *gin.Context) {
 			utils.GCRunAndPrintMemory()
 			c.JSON(http.StatusBadRequest, gin.H{"error": rep.NoRecords})
 		}
+	} else {
+		utils.GCRunAndPrintMemory()
+		customLog.Logging(err)
 	}
 }
 
@@ -167,8 +201,11 @@ func (rep *Repository) Update(c *gin.Context) {
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
-			c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
+			customLog.Logging(err)
 		}
+	} else {
+		utils.GCRunAndPrintMemory()
+		c.JSON(http.StatusBadRequest, gin.H{"error": rep.IncorrectParams})
 	}
 }
 

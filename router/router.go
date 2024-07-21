@@ -11,11 +11,13 @@ import (
 func RunRouter() {
 	utils.GCRunAndPrintMemory()
 	router := gin.Default()
+	router.GET("/users/:id", getOne)
 	router.GET("/users", getList)
 	router.POST("/users", create)
 	router.PUT("users", update)
 	router.DELETE("/users/:id", delete)
 	router.POST("/users/time", getExecTime)
+	router.GET("/tasks/:id", getOne)
 	router.GET("/tasks", getList)
 	router.PUT("tasks", update)
 	router.POST("/tasks/start", startTask)
@@ -30,6 +32,14 @@ func getList(c *gin.Context) {
 	rep := repository.NewRepository()
 	wg.Add(1)
 	go rep.GetList(c, &wg)
+	wg.Wait()
+}
+
+func getOne(c *gin.Context) {
+	var wg sync.WaitGroup
+	rep := repository.NewRepository()
+	wg.Add(1)
+	go rep.GetOne(c, &wg)
 	wg.Wait()
 }
 
