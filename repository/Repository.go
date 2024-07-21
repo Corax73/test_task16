@@ -99,14 +99,24 @@ func (rep *Repository) Delete(c *gin.Context) {
 		id := c.Param("id")
 		if id != "" {
 			database := customDb.GetConnect()
-			res := database.Where("id = ?", id).Delete(&model)
-			if res.RowsAffected == 1 {
-				utils.GCRunAndPrintMemory()
-				c.JSON(200, "entity deleted")
+			tx := database.Begin()
+			res := tx.Where("id = ?", id).Delete(&model)
+			if res.Error == nil {
+				res := tx.Commit()
+				if res.Error == nil {
+					utils.GCRunAndPrintMemory()
+					c.JSON(200, "entity deleted")
+				} else {
+					tx.Rollback()
+					customLog.Logging(res.Error)
+					utils.GCRunAndPrintMemory()
+					c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+				}
 			} else {
+				tx.Rollback()
 				customLog.Logging(res.Error)
 				utils.GCRunAndPrintMemory()
-				c.JSON(http.StatusBadRequest, gin.H{"error": rep.SomethingWrong})
+				c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
 			}
 		} else {
 			utils.GCRunAndPrintMemory()
