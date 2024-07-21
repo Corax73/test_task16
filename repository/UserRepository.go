@@ -104,15 +104,12 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 						startExec := fmt.Sprintf("%v", task["start_exec"])
 						startExec = startExec[:len(startExec)-10]
 						parseTimeStart, err := time.Parse(layout, startExec)
-						fmt.Println("parseTimeStart=", parseTimeStart)
 						if err == nil {
 							pause := fmt.Sprintf("%v", task["pause"])
 							pause = pause[:len(pause)-10]
 							parseTimePause, err := time.Parse(layout, pause)
-							fmt.Println("parseTimePause=", parseTimePause)
 							if err == nil {
 								dur := parseTimePause.Sub(parseTimeStart)
-								fmt.Println("dur=", dur)
 								resp[task_id] += dur
 							} else {
 								utils.GCRunAndPrintMemory()
@@ -124,7 +121,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 						}
 					}
 				}
-				fmt.Println("resp=", resp)
+
 				if len(resp) > 0 {
 					sortedResp := [][]interface{}{}
 					keys := make([]string, 0, len(resp))
@@ -147,9 +144,6 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
 						if seconds > 60 {
 							minutes = seconds / 60
 						}
-						fmt.Println("hours=", hours)
-						fmt.Println("minutes=", minutes)
-						fmt.Println("seconds=", seconds)
 						hoursStr = strconv.Itoa(hours)
 						var str strings.Builder
 						str.WriteString(hoursStr)
