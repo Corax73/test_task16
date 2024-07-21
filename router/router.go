@@ -27,7 +27,7 @@ func RunRouter() {
 // getList processes the route for obtaining lists of entities.
 func getList(c *gin.Context) {
 	var wg sync.WaitGroup
-	rep := repository.NewTaskRepository()
+	rep := repository.NewRepository()
 	wg.Add(1)
 	go rep.GetList(c, &wg)
 	wg.Wait()
@@ -59,8 +59,11 @@ func create(c *gin.Context) {
 
 // getExecTime returns a slice of data with task IDs and their execution time, in descending order of time.
 func getExecTime(c *gin.Context) {
+	var wg sync.WaitGroup
+	wg.Add(1)
 	rep := repository.NewUserRepository()
-	rep.GetTaskExecutionTime(c)
+	go rep.GetTaskExecutionTime(c, &wg)
+	wg.Wait()
 }
 
 // delete deletes an entity using the passed ID.

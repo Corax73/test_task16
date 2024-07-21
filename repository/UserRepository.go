@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"timeTracker/customDb"
 	"timeTracker/customLog"
@@ -52,7 +53,7 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 				res := tx.Commit()
 				if res.Error == nil {
 					utils.GCRunAndPrintMemory()
-					c.JSON(200, "created")
+					c.JSON(200, "created with id=" + user.ID.String())
 				} else {
 					tx.Rollback()
 					customLog.Logging(res.Error)
@@ -77,7 +78,8 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 	return resp, err
 }
 
-func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context) {
+func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	obj := (*models.User).Init(new(models.User))
 	model := &obj
 	userId, err := rep.CheckEntityById(c, model)
