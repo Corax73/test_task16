@@ -105,7 +105,6 @@ func (rep *Repository) GetOne(c *gin.Context, wg *sync.WaitGroup) {
 		if id != "" {
 			database := customDb.GetConnect()
 			data := []map[string]interface{}{}
-			fmt.Println(id)
 			res := database.Model(&model).Where("id = ?", id).First(&data)
 			if res.RowsAffected > 0 {
 				utils.GCRunAndPrintMemory()
@@ -252,7 +251,6 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 			paramId = result["id"]
 		}
 	}
-	fmt.Println("paramId=", paramId)
 	if paramId == "0" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "paramId = 0"})
 	} else {
