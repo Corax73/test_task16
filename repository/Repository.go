@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -241,7 +242,17 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 	var err error
 	defaultId := uuid.New()
 	resp := &defaultId
-	paramId := c.DefaultPostForm("id", "0")
+	jsonData, err := c.GetRawData()
+	var paramId interface{}
+	if err == nil {
+		jsonBody := string(jsonData)
+		result := make(map[string]interface{})
+		err := json.Unmarshal([]byte(jsonBody), &result)
+		if err == nil {
+			paramId = result["id"]
+		}
+	}
+	fmt.Println("paramId=", paramId)
 	if paramId == "0" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "paramId = 0"})
 	} else {
