@@ -7,11 +7,11 @@ import (
 )
 
 type User struct {
-	ID             uuid.UUID `gorm:"primary_key, unique,type:uuid, column:id,default:uuid_generate_v4()"`
-	Name           string    `gorm:"unique"`
 	CreatedAt      time.Time `gorm:"default:current_timestamp"`
 	UpdatedAt      time.Time `gorm:"default:NULL"`
 	DeletedAt      time.Time `gorm:"default:NULL"`
+	ID             uuid.UUID `gorm:"primary_key, unique,type:uuid, column:id,default:uuid_generate_v4()"`
+	Name           string    `gorm:"unique"`
 	PassportNumber int
 	PassportSeries int
 }

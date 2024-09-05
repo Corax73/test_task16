@@ -7,11 +7,11 @@ import (
 )
 
 type TaskExecutionTime struct {
-	ID        uuid.UUID `gorm:"primary_key, unique,type:uuid, column:id,default:uuid_generate_v4()"`
-	TaskId    uuid.UUID `json:"task_id" gorm:"type:uuid"`
 	Task      Task      `gorm:"foreignKey:TaskId"`
 	StartExec time.Time `gorm:"type:TIMESTAMP;null;default:null"`
 	Pause     time.Time `gorm:"type:TIMESTAMP;null;default:null"`
+	ID        uuid.UUID `gorm:"primary_key, unique,type:uuid, column:id,default:uuid_generate_v4()"`
+	TaskId    uuid.UUID `json:"task_id" gorm:"type:uuid"`
 }
 
 func (task *TaskExecutionTime) TableName() string {
@@ -21,9 +21,9 @@ func (task *TaskExecutionTime) TableName() string {
 // Init returns a model instance.
 func (task *TaskExecutionTime) Init() TaskExecutionTime {
 	return TaskExecutionTime{
-		ID: uuid.New(),
-		TaskId: uuid.New(),
+		ID:        uuid.New(),
+		TaskId:    uuid.New(),
 		StartExec: time.Now(),
-		Pause: time.Now(),
+		Pause:     time.Now(),
 	}
 }
