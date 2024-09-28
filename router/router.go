@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net/http"
 	"sync"
 	"timeTracker/repository"
 	"timeTracker/utils"
@@ -11,6 +12,7 @@ import (
 func RunRouter() {
 	utils.GCRunAndPrintMemory()
 	router := gin.Default()
+
 	router.GET("/users/:id", getOne)
 	router.GET("/users", getList)
 	router.POST("/users", create)
@@ -23,7 +25,17 @@ func RunRouter() {
 	router.POST("/tasks/start", startTask)
 	router.POST("/tasks/stop", stopTask)
 	router.POST("/tasks/complete", completeTask)
+
+	router.LoadHTMLGlob("swagger/index.html")
+	router.GET("/swagger", welcomeHandler)
+
 	router.Run(":4343")
+}
+
+func welcomeHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", gin.H{
+		"title": "Main website",
+	})
 }
 
 // getList processes the route for obtaining lists of entities.

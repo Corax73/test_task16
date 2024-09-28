@@ -51,6 +51,7 @@ func (rep *Repository) GetList(c *gin.Context, wg *sync.WaitGroup) {
 	if err == nil {
 		var fieldList []string
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		result, _ := database.Debug().Migrator().ColumnTypes(&model)
 		for _, v := range result {
 			fieldList = append(fieldList, v.Name())
@@ -104,6 +105,7 @@ func (rep *Repository) GetOne(c *gin.Context, wg *sync.WaitGroup) {
 		id := c.Param("id")
 		if id != "" {
 			database := customDb.GetConnect()
+			defer customDb.CloseConnect(database)
 			data := []map[string]interface{}{}
 			res := database.Model(&model).Where("id = ?", id).First(&data)
 			if res.RowsAffected > 0 {
@@ -130,6 +132,7 @@ func (rep *Repository) Delete(c *gin.Context) {
 		id := c.Param("id")
 		if id != "" {
 			database := customDb.GetConnect()
+			defer customDb.CloseConnect(database)
 			tx := database.Begin()
 			res := tx.Where("id = ?", id).Delete(&model)
 			if res.Error == nil {
@@ -167,6 +170,7 @@ func (rep *Repository) Update(c *gin.Context) {
 		if id != "" {
 			var fieldList []string
 			database := customDb.GetConnect()
+			defer customDb.CloseConnect(database)
 			result, _ := database.Debug().Migrator().ColumnTypes(&model)
 			for _, v := range result {
 				fieldList = append(fieldList, v.Name())
@@ -255,6 +259,7 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 		c.JSON(http.StatusBadRequest, gin.H{"error": "paramId = 0"})
 	} else {
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		var count int64
 		database.Model(&model).Where("id = ?", paramId).Count(&count)
 		if count > 0 {

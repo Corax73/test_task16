@@ -22,3 +22,12 @@ func GetConnect() *gorm.DB {
 	}
 	return nil
 }
+
+// CloseConnect closes the connection based on the passed DB instance, returns errors when closing.
+func CloseConnect(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		customLog.Logging(err)
+	}
+    return sqlDB.Close()
+}

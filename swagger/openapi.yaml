@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Swagger Go api - OpenAPI 3.0
+  version: 1.0.11
+servers:
+  - url: http://localhost:4343/
+paths:
+  /users:
+    post:
+      tags:
+        - users
+      summary: Add a new users
+      description: Add a new users
+      operationId: addusers
+      requestBody:
+        description: Create a new users
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/users'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/users'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/users'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/users'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/users'
+        '400':
+          description: Invalid input
+        '422':
+          description: Validation exception
+components:
+  schemas:
+    users:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 0c91ff10-95a9-4a1a-b5b8-90956f95e919
+        name:
+          type: string
+          example: John
+        passport_number:
+          type: integer
+          format: int
+          example: 11 22
+        passport_series:
+          type: integer
+          format: int
+          example: 123 456
+      xml:
+        name: users
+  requestBodies:
+    users:
+      description: users object that needs to be added to app
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/users'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/users'

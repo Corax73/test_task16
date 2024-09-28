@@ -43,6 +43,7 @@ func (rep *TaskRepository) StartTask(c *gin.Context) {
 	taskId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		record := make(map[string]interface{})
 		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
 		if record["complete_exec"] == nil {
@@ -107,6 +108,7 @@ func (rep *TaskRepository) StopTask(c *gin.Context) {
 	if err == nil {
 		record := make(map[string]interface{})
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
 		if record["complete_exec"] == nil {
 			var count int64
@@ -154,6 +156,7 @@ func (rep *TaskRepository) CompleteTask(c *gin.Context) {
 	taskId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		record := make(map[string]interface{})
 		database.Model(&models.Task{}).Where("ID = ?", taskId).First(&record)
 		if record["complete_exec"] == nil {

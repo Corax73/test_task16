@@ -46,6 +46,7 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 	if errNumber == nil && errSeries == nil {
 		if name != "" && passportNumber != 0 && passportSeries != 0 {
 			database := customDb.GetConnect()
+			defer customDb.CloseConnect(database)
 			user := models.User{ID: newId, Name: name, PassportNumber: passportNumber, PassportSeries: passportSeries}
 			tx := database.Begin()
 			result := tx.Create(&user)
@@ -85,6 +86,7 @@ func (rep *UserRepository) GetTaskExecutionTime(c *gin.Context, wg *sync.WaitGro
 	userId, err := rep.CheckEntityById(c, model)
 	if err == nil {
 		database := customDb.GetConnect()
+		defer customDb.CloseConnect(database)
 		data := []map[string]interface{}{}
 		database.Model(&models.Task{}).Select("id").Where("user_id = ?", userId).Find(&data)
 		var taskIds []string
