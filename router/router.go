@@ -27,15 +27,15 @@ func RunRouter() {
 	router.POST("/tasks/complete", completeTask)
 
 	router.LoadHTMLGlob("swagger/index.html")
-	router.GET("/swagger", welcomeHandler)
+
+	router.GET("/swagger", swaggerPage)
+	router.Static("/swagger", "./swagger")
 
 	router.Run(":4343")
 }
 
-func welcomeHandler(c *gin.Context) {
-	c.HTML(http.StatusOK, "index.html", gin.H{
-		"title": "Main website",
-	})
+func swaggerPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", gin.H{})
 }
 
 // getList processes the route for obtaining lists of entities.
