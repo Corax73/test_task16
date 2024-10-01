@@ -166,7 +166,11 @@ func (rep *Repository) Delete(c *gin.Context) {
 func (rep *Repository) Update(c *gin.Context) {
 	model, err := rep.GetModelByQuery(c)
 	if err == nil {
-		id := c.DefaultPostForm("id", "")
+		var id string
+		jsonRaw, err := rep.GetJsonRaw(c)
+		if err == nil {
+			id = jsonRaw["id"]
+		}
 		if id != "" {
 			var fieldList []string
 			database := customDb.GetConnect()
@@ -177,7 +181,7 @@ func (rep *Repository) Update(c *gin.Context) {
 			}
 			updatedData := make(map[string]interface{}, len(fieldList))
 			for _, v := range fieldList {
-				value := c.DefaultPostForm(v, "")
+				value := jsonRaw[v]
 				if value != "" {
 					updatedData[v] = value
 				}
@@ -245,7 +249,7 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 	var err error
 	defaultId := uuid.New()
 	resp := &defaultId
-	jsonData, err := c.GetRawData()
+	/*jsonData, err := c.GetRawData()
 	var paramId interface{}
 	if err == nil {
 		jsonBody := string(jsonData)
@@ -254,6 +258,11 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 		if err == nil {
 			paramId = result["id"]
 		}
+	}*/
+	var paramId interface{}
+	result, err := rep.GetJsonRaw(c)
+	if err == nil {
+		paramId = result["id"]
 	}
 	if paramId == "0" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "paramId = 0"})
@@ -355,4 +364,22 @@ func (rep *Repository) GetFilterAndSortFromGetRequest(c *gin.Context, fieldList 
 		Filtered:  filtered,
 	}
 	return resp
+}
+
+// GetJsonRaw returns a map[string]string with json parameters from the request and error.
+func (rep *Repository) GetJsonRaw(c *gin.Context) (map[string]string, error) {
+	var err error
+	result := make(map[string]string)
+	data := make(map[string]interface{})
+	jsonData, err := c.GetRawData()
+	if err == nil {
+		jsonBody := string(jsonData)
+		err = json.Unmarshal([]byte(jsonBody), &data)
+	}
+	for k, v := range data {
+		if v != "" {
+			result[k] = fmt.Sprintf("%v", v)
+		}
+	}
+	return result, err
 }

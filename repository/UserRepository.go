@@ -40,9 +40,15 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 	user := models.User{}
 	resp := &user
 	newId := uuid.New()
-	name := c.DefaultPostForm("name", "")
-	passportNumber, errNumber := strconv.Atoi(c.DefaultPostForm("passportNumber", "0"))
-	passportSeries, errSeries := strconv.Atoi(c.DefaultPostForm("passportSeries", "0"))
+	var name string
+	var passportNumber, passportSeries int
+	var errNumber, errSeries error
+	result, err := rep.GetJsonRaw(c)
+	if err == nil {
+		name = fmt.Sprintf("%v", result["name"])
+		passportNumber, errNumber = strconv.Atoi(fmt.Sprintf("%v", result["passportNumber"]))
+		passportSeries, errSeries = strconv.Atoi(fmt.Sprintf("%v", result["passportSeries"]))
+	}
 	if errNumber == nil && errSeries == nil {
 		if name != "" && passportNumber != 0 && passportSeries != 0 {
 			database := customDb.GetConnect()
@@ -54,7 +60,7 @@ func (rep *UserRepository) Create(c *gin.Context) (*models.User, error) {
 				res := tx.Commit()
 				if res.Error == nil {
 					utils.GCRunAndPrintMemory()
-					c.JSON(200, "created with id=" + user.ID.String())
+					c.JSON(200, "created with id="+user.ID.String())
 				} else {
 					tx.Rollback()
 					customLog.Logging(res.Error)
