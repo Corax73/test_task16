@@ -134,3 +134,122 @@ paths:
           description: Invalid ID supplied
         "422":
           description: Validation exception
+  /tasks:
+    get:
+      tags:
+        - tasks
+      summary: get tasks
+      description: Returns list
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: Invalid route
+  /tasks/{id}:
+    get:
+      tags:
+        - task
+      summary: get task
+      description: Returns one task
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+            example: ef646391-e15b-4a51-aa16-27ffa7f51bfd
+          description: Task
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: Invalid ID supplied
+  /tasks/start:
+    post:
+      tags:
+        - start
+      summary: sets the task start time
+      description: the time intervals between starts and pauses/closing are calculated
+      requestBody:
+        description: if the task has already been launched, the date is not updated
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - "id"
+              properties:
+                id:
+                  type: string
+                  example: ef646391-e15b-4a51-aa16-27ffa7f51bfd
+              type: object
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+          required: true
+        "400":
+          description: Invalid ID supplied
+        "422":
+          description: Validation exception
+  /tasks/stop:
+    post:
+      tags:
+        - stop
+      summary: sets the pause time in task execution
+      description: the time intervals between starts and pauses/closing are calculated
+      requestBody:
+        description: if the task has already been launched, the date is not updated
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - "id"
+              properties:
+                id:
+                  type: string
+                  example: ef646391-e15b-4a51-aa16-27ffa7f51bfd
+              type: object
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+          required: true
+        "400":
+          description: Invalid ID supplied
+        "422":
+          description: Validation exception
+  /tasks/complete:
+    post:
+      tags:
+        - complete
+      summary: sets the pause time in task execution
+      description: the time intervals between starts and pauses/closing are calculated
+      requestBody:
+        description: if the task has already been closed it cannot be started
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - "id"
+              properties:
+                id:
+                  type: string
+                  example: ef646391-e15b-4a51-aa16-27ffa7f51bfd
+              type: object
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+          required: true
+        "400":
+          description: Invalid ID supplied
+        "422":
+          description: Validation exception

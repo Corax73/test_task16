@@ -249,16 +249,6 @@ func (rep *Repository) CheckEntityById(c *gin.Context, model models.Model) (*uui
 	var err error
 	defaultId := uuid.New()
 	resp := &defaultId
-	/*jsonData, err := c.GetRawData()
-	var paramId interface{}
-	if err == nil {
-		jsonBody := string(jsonData)
-		result := make(map[string]interface{})
-		err := json.Unmarshal([]byte(jsonBody), &result)
-		if err == nil {
-			paramId = result["id"]
-		}
-	}*/
 	var paramId interface{}
 	result, err := rep.GetJsonRaw(c)
 	if err == nil {
